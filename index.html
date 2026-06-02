@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bon de commande – Koppert</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f5f5f3; color: #1a1a1a; font-size: 15px; line-height: 1.5; }
+  .container { max-width: 820px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .page-header { margin-bottom: 2rem; }
+  .page-header h1 { font-size: 22px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
+  .page-header h1 svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .page-header p { font-size: 14px; color: #666; margin-top: 5px; }
+
+  /* Champ nom surligné */
+  .name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+  .name-row label { font-size: 15px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+  .name-row input { flex: 1; padding: 10px 14px; font-size: 15px; font-weight: 500; border-radius: 8px; border: 2px solid #1D9E75; background: #E1F5EE; color: #085041; outline: none; transition: border-color .15s, background .15s; }
+  .name-row input:focus { border-color: #0F6E56; background: #c8ede1; }
+  .name-row input::placeholder { color: #5DCAA5; font-weight: 400; font-style: italic; }
+
+  /* Search */
+  .search-wrap { margin-bottom: 1.25rem; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #999; pointer-events: none; }
+  .search-wrap input { width: 100%; padding: 9px 12px 9px 36px; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; outline: none; transition: border-color .15s; }
+  .search-wrap input:focus { border-color: #0f6e56; }
+
+  /* Section blocks */
+  .section-block { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; cursor: pointer; user-select: none; background: #fafaf8; transition: background .1s; }
+  .section-header:hover { background: #f0f0ee; }
+  .section-header h2 { font-size: 12.5px; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 7px; }
+  .section-header h2 svg { width: 14px; height: 14px; color: #0f6e56; flex-shrink: 0; }
+  .section-meta { display: flex; align-items: center; gap: 8px; }
+  .section-meta .count { font-size: 12px; color: #999; }
+  .chevron { width: 16px; height: 16px; color: #aaa; transition: transform .2s; flex-shrink: 0; }
+  .section-header.open .chevron { transform: rotate(180deg); }
+  .product-list { display: none; }
+  .product-list.open { display: block; }
+
+  /* Product rows */
+  .product-row { display: flex; align-items: center; gap: 10px; padding: 8px 15px; border-top: 1px solid #f0f0ee; transition: background .1s; }
+  .product-row:hover { background: #fafaf8; }
+  .qty-control { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .qty-btn { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #ddd; background: #fff; color: #444; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background .1s, border-color .1s; }
+  .qty-btn:hover { background: #f0f0ee; border-color: #bbb; }
+  .qty-input { width: 44px; text-align: center; font-size: 14px; border: 1px solid #ddd; border-radius: 7px; padding: 4px 2px; background: #fff; color: #1a1a1a; outline: none; transition: border-color .15s; }
+  .qty-input:focus { border-color: #0f6e56; }
+  .qty-input.active { border-color: #1d9e75; background: #e1f5ee; color: #085041; font-weight: 600; }
+  .product-code { font-size: 11.5px; color: #aaa; width: 58px; flex-shrink: 0; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .product-name { font-size: 13.5px; color: #1a1a1a; flex: 1; }
+  .bio-badge { font-size: 10.5px; background: #eaf3de; color: #3b6d11; padding: 2px 6px; border-radius: 4px; font-weight: 500; flex-shrink: 0; }
+
+  /* Summary */
+  .summary-section { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; margin-top: 2rem; overflow: hidden; }
+  .summary-header { padding: 13px 16px; background: #fafaf8; border-bottom: 1px solid #e5e5e3; display: flex; align-items: center; justify-content: space-between; }
+  .summary-header h2 { font-size: 15px; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 8px; }
+  .summary-header h2 svg { width: 17px; height: 17px; color: #0f6e56; }
+  .summary-stats { font-size: 13px; color: #888; background: #f0f0ee; padding: 3px 10px; border-radius: 20px; }
+  .summary-body { padding: 14px 16px; }
+  .summary-empty { font-size: 14px; color: #aaa; text-align: center; padding: 24px 0; }
+  .confirmation-phrase { padding: 10px 14px; background: #fafaf8; border-radius: 8px; border: 1px solid #e5e5e3; font-size: 13.5px; color: #666; font-style: italic; display: flex; align-items: center; gap: 8px; }
+  .confirmation-phrase svg { width: 15px; height: 15px; color: #0f6e56; flex-shrink: 0; }
+  .summary-list { margin-top: 10px; }
+  .summary-item { display: flex; align-items: center; font-size: 13.5px; padding: 6px 0; border-bottom: 1px solid #f0f0ee; gap: 10px; }
+  .summary-item:last-child { border-bottom: none; }
+  .summary-qty { font-weight: 600; color: #0f6e56; white-space: nowrap; min-width: 40px; flex-shrink: 0; }
+  .summary-code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; color: #bbb; flex-shrink: 0; }
+  .summary-name { color: #1a1a1a; flex: 1; }
+
+  /* Email copy */
+  .copy-area { margin-top: 14px; border-top: 1px solid #f0f0ee; padding-top: 14px; }
+  .copy-area label { font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 6px; }
+  .copy-area textarea { width: 100%; font-size: 13px; font-family: 'SF Mono', 'Fira Code', monospace; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafaf8; color: #1a1a1a; resize: vertical; min-height: 120px; outline: none; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn-copy { flex: 1; padding: 9px; font-size: 14px; font-weight: 500; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background .1s, border-color .1s, color .1s; }
+  .btn-copy:hover { background: #f0f0ee; }
+  .btn-copy.copied { border-color: #0f6e56; color: #0f6e56; background: #e1f5ee; }
+  .btn-reset { padding: 9px 14px; font-size: 13px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #888; cursor: pointer; transition: background .1s; }
+  .btn-reset:hover { background: #f0f0ee; color: #444; }
+  .no-results { text-align: center; color: #aaa; font-size: 14px; padding: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <h1>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      Bon de commande
+    </h1>
+    <p>Sélectionnez les quantités, puis copiez le résumé pour votre courriel.</p>
+  </div>
+
+  <div class="name-row">
+    <label>Commande pour :</label>
+    <input type="text" id="client-name" placeholder="Inscrire le nom ici…" oninput="updateSummary()" />
+  </div>
+
+  <div class="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search" placeholder="Rechercher un produit ou un code…" oninput="filterProducts(this.value)" />
+  </div>
+
+  <div id="sections"></div>
+  <div id="no-results" class="no-results" style="display:none">Aucun produit trouvé pour cette recherche.</div>
+
+  <div class="summary-section">
+    <div class="summary-header">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Résumé de commande
+      </h2>
+      <span class="summary-stats" id="summary-stats">0 produit sélectionné</span>
+    </div>
+    <div class="summary-body">
+      <div class="confirmation-phrase">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Pouvez-vous m'envoyer la confirmation de cette commande ?
+      </div>
+      <div class="summary-list" id="summary-content">
+        <p class="summary-empty">Aucun produit sélectionné pour l'instant.</p>
+      </div>
+      <div class="copy-area" id="copy-area" style="display:none">
+        <label>Texte prêt à coller dans votre courriel</label>
+        <textarea id="email-text" readonly></textarea>
+        <div class="btn-row">
+          <button class="btn-copy" id="btn-copy" onclick="copyEmail()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copier pour le courriel
+          </button>
+          <button class="btn-reset" onclick="resetAll()">↺ Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SECTIONS = [
+  { id:"mouche-blanche", title:"Contrôle de la mouche blanche", products:[
+    {code:"02010",name:"ENSTIP 1/2 7 500"},{code:"02020",name:"ENSTIP 3 000"},{code:"02031",name:"ENSTIP 15 000"},
+    {code:"02360",name:"ENERMIX 3 000 – Cartes mixtes 50/50"},{code:"02371",name:"ENERMIX 15 000 – Cartes mixtes 50/50"},
+    {code:"04330",name:"ERCAL 3 000"},{code:"04341",name:"ERCAL 15 000"},{code:"52185",name:"ERCAL 100 000 vrac"},
+    {code:"04320",name:"DELPHIBUG 1 000"},{code:"05401",name:"SWIRSKMITE 50 000"},{code:"05403",name:"SWIRSKMITE 125 000"},
+    {code:"05410",name:"SWIRSKMITE-PLUS 100 sachets"},{code:"05420",name:"SWIRSKMITE-PLUS 500 sachets"},
+    {code:"05520",name:"SWIRSKIIMITE LD 500 sachets"},{code:"05431",name:"SWIRSKI ULTI-MITE 100 sachets"},
+    {code:"05430",name:"SWIRSKI ULTI-MITE 500 sachets"},{code:"CA4954",name:"SWIRSKI ULTI-MITE + SPICAL ULTI-MITE – Combo 25/25 sachets"},
+    {code:"05600",name:"LIMONICA 12 500"},{code:"05605",name:"LIMONICA 25 000"},{code:"05615",name:"LIMONICA ULTI-MITE 500"}
+  ]},
+  { id:"pucerons", title:"Contrôle des pucerons", products:[
+    {code:"04884",name:"APHIDALIA 100"},{code:"02500",name:"APHIDEND 1 000"},{code:"02503",name:"APHIDEND 10 000"},
+    {code:"02600",name:"APHIPAR 500"},{code:"02602",name:"APHIPAR 1 000"},{code:"02640",name:"APHIPAR 5 000"},
+    {code:"02682",name:"APHIPAR-M 1 000"},{code:"02680",name:"APHIPAR-M 5 000"},{code:"02720",name:"ERVIPAR 250"},
+    {code:"02721",name:"ERVIPAR 500"},{code:"02740",name:"ERVIPAR BULK 5 000"},{code:"04151",name:"APHILIN 500"},
+    {code:"04280",name:"CHRYSOPA 1 000"},{code:"04285",name:"CHRYSOPA 10 000"},{code:"04281",name:"CHRYSOPA-E 100 000"},
+    {code:"01974",name:"EGGJUVANT – Petit"},{code:"01973",name:"EGGJUVANT – Grand"}
+  ]},
+  { id:"acariens", title:"Contrôle des acariens", products:[
+    {code:"03189",name:"SPIDEX VITAL 2 000"},{code:"03182",name:"SPIDEX VITAL 10 000 Blanc"},
+    {code:"03198",name:"SPIDEX VITAL 25 000 Blanc"},{code:"03186",name:"SPIDEX 10 000 Rouge"},
+    {code:"03197",name:"SPIDEX VITAL GO 250 sachets"},{code:"03195",name:"SPIDEX VITAL PLUS 100 sachets"},
+    {code:"03184",name:"SPIDEX VITAL PLUS 250 sachets"},{code:"03192",name:"SPIDEX BOOST 250 sachets"},
+    {code:"04908",name:"SPICAL 25 000"},{code:"02528",name:"SPICAL 125 000"},
+    {code:"04907",name:"SPICAL PLUS 100 sachets"},{code:"04911",name:"SPICAL PLUS 500 sachets"},
+    {code:"05429",name:"SPICAL ULTI-MITE 100"},{code:"04903",name:"SPICAL ULTI-MITE 500"},
+    {code:"CA4954",name:"SWIRSKI ULTI-MITE + SPICAL ULTI-MITE – Combo 25/25 sachets"},{code:"03350",name:"SPIDEND 250"}
+  ]},
+  { id:"thrips", title:"Contrôle des thrips", products:[
+    {code:"03710",name:"THRIPEX-PLUS 500 sachets"},{code:"52005",name:"THRIPEX-MINI 500 sachets sur crochet"},
+    {code:"03700",name:"THRIPEX-MINI 500 sachets sur bâtons"},{code:"03760",name:"THRIPEX 500 000"},
+    {code:"52040",name:"THRIPEX 250 000"},{code:"03780",name:"THRIPEX BULK 100 000"},{code:"03750",name:"THRIPEX 50 000"},
+    {code:"03970",name:"THRIPEX-V 50 000 Vermiculite"},{code:"05401",name:"SWIRSKMITE 50 000"},
+    {code:"05403",name:"SWIRSKMITE 125 000"},{code:"05410",name:"SWIRSKMITE-PLUS 100 sachets"},
+    {code:"05420",name:"SWIRSKMITE-PLUS 500 sachets"},{code:"05520",name:"SWIRSKIIMITE-LD 500 sachets"},
+    {code:"05431",name:"SWIRSKI ULTI-MITE 100 sachets"},{code:"05430",name:"SWIRSKI ULTI-MITE 500 sachets"},
+    {code:"CA4954",name:"SWIRSKI ULTI-MITE + SPICAL ULTI-MITE – Combo 25/25 sachets"},
+    {code:"05600",name:"LIMONICA 12 500"},{code:"05605",name:"LIMONICA 25 000"},{code:"05615",name:"LIMONICA ULTI-MITE 500"},
+    {code:"04011",name:"THRIPOR 1 000"},{code:"04012",name:"THRIPOR 2 000"},
+    {code:"02001",name:"ANSO-MITE 125 000"},{code:"02005",name:"ANSO-MITE PLUS 500 sachets"},
+    {code:"04664",name:"ENTONEM 50 millions",bio:true},{code:"04663",name:"ENTONEM 500 millions",bio:true},
+    {code:"04612",name:"ENTONEM 10 x 250 millions",bio:true},{code:"04610",name:"ENTONEM 50 millions"},
+    {code:"04660",name:"ENTONEM 500 millions"},{code:"04613",name:"ENTONEM 10 x 250 millions"},
+    {code:"04670",name:"ENTOMITE M 10 000"},{code:"04675",name:"ENTOMITE M 50 000"},{code:"04676",name:"ENTOMITE M 125 000"}
+  ]},
+  { id:"chenilles", title:"Contrôle des chenilles", products:[
+    {code:"04472",name:"CAPSANEM 50 millions",bio:true},{code:"04473",name:"CAPSANEM 500 millions",bio:true},
+    {code:"04447",name:"CAPSANEM 10 x 250 millions",bio:true},{code:"04450",name:"CAPSANEM 50 millions"},
+    {code:"04460",name:"CAPSANEM 500 millions"},{code:"04446",name:"CAPSANEM 10 x 250 millions"}
+  ]},
+  { id:"cochenilles", title:"Contrôle des cochenilles", products:[
+    {code:"04735",name:"CRYPTOBUG 500"},{code:"04736",name:"CRYPTOBUG-L 1 000"},{code:"04770",name:"CITIPAR 500"}
+  ]},
+  { id:"mouches-mineuses", title:"Contrôle des mouches mineuses", products:[{code:"02922",name:"MIGLYPHUS 500"}]},
+  { id:"vers-blancs", title:"Contrôle des vers blancs", products:[
+    {code:"04520",name:"LARVANEM 50 millions"},{code:"04525",name:"LARVANEM 500 millions"},{code:"04522",name:"LARVANEM 10 x 250 millions"}
+  ]},
+  { id:"sciarides", title:"Contrôle des sciarides et mouches des rivages", products:[
+    {code:"04664",name:"ENTONEM 50 millions sciarides",bio:true},{code:"04663",name:"ENTONEM 500 millions sciarides",bio:true},
+    {code:"04612",name:"ENTONEM 10 x 250 millions sciarides",bio:true},{code:"04610",name:"ENTONEM 50 millions"},
+    {code:"04660",name:"ENTONEM 500 millions"},{code:"04613",name:"ENTONEM 10 x 250 millions"},
+    {code:"04670",name:"ENTOMITE M 10 000"},{code:"04675",name:"ENTOMITE M 50 000"},{code:"04676",name:"ENTOMITE M 125 000"},
+    {code:"CA4330",name:"ATHETA 1 000"},{code:"CA4335",name:"ATHETA 3 000"},{code:"02003",name:"ATHETA 1 000"},{code:"02002",name:"ATHETA 5 000"}
+  ]},
+  { id:"mouches-dom", title:"Contrôle des mouches domestiques et des étables", products:[
+    {code:"53900",name:"BIOPAR 15 000"},{code:"53905",name:"BIOPAR XL 150 000"},{code:"53910",name:"BIOFLY 4 500"},
+    {code:"53915",name:"BIOFLY L 9 000"},{code:"53922",name:"BIOFLY diffuseur"}
+  ]},
+  { id:"psylles", title:"Contrôle des psylles", products:[{code:"04120",name:"TETRAPAR 250"}]},
+  { id:"cochenilles-bouclier", title:"Contrôle des cochenilles à bouclier", products:[{code:"04730",name:"RHYZOBUG 500"}]},
+  { id:"pieges-wet", title:"Pièges englués WET quadrillés", products:[
+    {code:"06055",name:"PIÈGE HORIVER BULK – Jaune – Petit"},{code:"06016",name:"PIÈGE HORIVER – Jaune – Petit"},
+    {code:"06014",name:"PIÈGE HORIVER – Jaune – Moyen"},{code:"06011",name:"PIÈGE HORIVER – Jaune – Grand"},
+    {code:"06020",name:"PIÈGE HORIVER – Bleu – Petit"},{code:"06008",name:"PIÈGE HORIVER – Bleu – Grand"},
+    {code:"06009",name:"PIÈGE HORIVER – Noir – Grand"},{code:"06222",name:"PIÈGE HORIVER – Rouge – Petit"},
+    {code:"06026",name:"PIÈGE HORIVER – Blanc – Petit"},{code:"06024",name:"PIÈGE HORIVER – Blanc – Grand"},
+    {code:"06028",name:"PIÈGE HORIVER – Vert – Petit"},{code:"06029",name:"PIÈGE HORIVER – Vert – Grand"},
+    {code:"CA6235",name:"PIÈGE ROND HORIVER – Jaune"},{code:"06918",name:"PIÈGE ROND HORIVER – Jaune"}
+  ]},
+  { id:"pieges-dry", title:"Pièges DRY", products:[
+    {code:"06030",name:"PIÈGE HORIVER DRY – Jaune – Petit"},{code:"06032",name:"PIÈGE HORIVER DRY – Jaune – Grand"},
+    {code:"06031",name:"PIÈGE HORIVER DRY – Bleu – Petit"},{code:"06036",name:"PIÈGE HORIVER DRY – Bleu – Grand"},
+    {code:"06035",name:"PIÈGE HORIVER DRY – Blanc – Petit"},{code:"06038",name:"PIÈGE HORIVER DRY – Blanc – Grand"}
+  ]},
+  { id:"bandes", title:"Bandes collantes", products:[
+    {code:"06848",name:"MINI-ROLLERTRAP HORIVER – Jaune – 5cm×100m"},{code:"06880",name:"ROLLERTRAP HORIVER – Jaune – 15cm×100m"},
+    {code:"55130",name:"ROLLERTRAP HORIVER – Jaune – 15cm×130m"},{code:"55140",name:"ROLLERTRAP HORIVER – Jaune – 15cm×140m"},
+    {code:"06885",name:"ROLLERTRAP HORIVER – Jaune – 15cm×500m"},{code:"06890",name:"ROLLERTRAP HORIVER – Jaune – 30cm×100m"},
+    {code:"06870",name:"ROLLERTRAP HORIVER – Bleu – 15cm×100m"},{code:"06860",name:"ROLLERTRAP HORIVER – Bleu – 30cm×100m"},
+    {code:"06919",name:"ROLLERTRAP HORIVER – Vert – 15cm×100m"},{code:"CA6850",name:"ROLLERTRAP CLIPS – paquet de 5"}
+  ]},
+  { id:"autres-pieges", title:"Autres pièges", products:[
+    {code:"08002",name:"DELTA TRAP"},{code:"08003",name:"Plaques adhésives pour piège Delta"},
+    {code:"07988",name:"PIÈGE DROSOSAN"},{code:"07996",name:"PIÈGE MOSKISAN"},
+    {code:"08007",name:"PIÈGE PICUSAN"},{code:"07989",name:"BUXTRAP"},{code:"CA7989",name:"BUXTRAP Retail"}
+  ]},
+  { id:"pollinisation", title:"Pollinisation", products:[
+    {code:"CA9995",name:"NATUPOL EXCEL"},{code:"CA9998",name:"NATUPOL EXCEL – QE Class A Western hive"},
+    {code:"80400",name:"NATUPOL FLY"},{code:"CA9994",name:"POLLEN"},{code:"990012",name:"BEE HAPPY"},
+    {code:"80001",name:"SUPPORT DE RUCHE"},{code:"07500",name:"BeeHome sans fil"},
+    {code:"07505",name:"Wireless BeeHome – Transmetteur"},{code:"07502",name:"BeeHome sans fil – Batterie de remplacement"},
+    {code:"07521",name:"BeeHome sans fil – Transmetteur"}
+  ]},
+  { id:"pheromones", title:"Phéromones", products:[
+    {code:"CA8009",name:"PHERODIS – Charançon du poivron"},{code:"08070",name:"PHERODIS – Cochenille farineuse du citronnier"},
+    {code:"08080",name:"PHERODIS – Duponchelia"},{code:"08020",name:"PHERODIS – Noctuelle de l'artichaut"},
+    {code:"08042",name:"PHERODIS – Fausse arpenteuse du chou"},{code:"08030",name:"PHERODIS – Noctuelle de la betterave"},
+    {code:"08050",name:"PHERODIS – Tordeuse noire"},{code:"08200",name:"LUREM-TR"}
+  ]},
+  { id:"nourriture", title:"Source de nourriture complémentaire", products:[
+    {code:"09708",name:"NUTARI"},{code:"09709",name:"NUTEMIA"},{code:"09725",name:"MESOFEED 500 g"},
+    {code:"09715",name:"ARTEFEED 2,5 kg"},{code:"09700",name:"ENTOFOOD 60 g"},{code:"52190",name:"ENTOFOOD 500 g"}
+  ]},
+  { id:"biofongicides", title:"Biofongicides et bioinsecticides", products:[
+    {code:"12923",name:"TRIANUM-P 0,5 kg",bio:true},{code:"12925",name:"TRIANUM-P 5 kg",bio:true},
+    {code:"12927",name:"TRIANUM-G 20 kg",bio:true},{code:"10114",name:"MYCOTAL 500 g",bio:true},
+    {code:"10118",name:"MYCOTAL 5 kg",bio:true},{code:"07011",name:"VALTO V10 – Traitement contre le PepMV"}
+  ]},
+  { id:"biostimulants", title:"Biostimulants à base de micro-organismes", products:[
+    {code:"CA5002",name:"MICROFLORA PRO – Mini 8oz",bio:true},{code:"CA5000",name:"MICROFLORA PRO – 4 litres",bio:true},
+    {code:"CA5003",name:"MICROFLORA PRO – 10 litres",bio:true}
+  ]},
+  { id:"divers", title:"Divers et applicateurs", products:[
+    {code:"CA7403",name:"DIBOX 25"},{code:"07401",name:"DIBOX 400"},{code:"PR28256",name:"LOUPE D'OBSERVATION"},
+    {code:"07700",name:"AIRBUG applicateur"},{code:"07760",name:"MINI-AIRBUG applicateur"},
+    {code:"07702",name:"Batterie MINI-AIRBUG 6V"},{code:"07805",name:"Applicateur TRIANUM-G"},
+    {code:"07827",name:"NATUTEC AIROBREEZ"},{code:"07706",name:"NATUTEC AIROBREEZ BATTERY"},
+    {code:"07707",name:"NATUTEC AIROBREEZ 3PC CLIPS"},{code:"07710",name:"NATUTEC AIROBREEZ TRANSPARENT RESERVOIR"}
+  ]},
+  { id:"depistage", title:"Dépistage", products:[
+    {code:"CA8500",name:"SCOUTING SERVICES – Horaire"},{code:"CA8505",name:"SCOUTING SERVICES – Par acre"},
+    {code:"CA8510",name:"SCOUTING SERVICES – Cartes collantes seulement"}
+  ]},
+  { id:"tests", title:"Tests diagnostic", products:[
+    {code:"CA9016",name:"ANALYSE DE MALADIES OU DE RÉSIDUS DE PESTICIDES"},
+    {code:"CA9017",name:"ANALYSE DE MALADIES OU DE VIRUS"}
+  ]}
+];
+
+const CONFIRMATION = "Pouvez-vous m'envoyer la confirmation de cette commande ?";
+const quantities = {};
+
+function uid(secId, code, name) { return secId + '||' + code + '||' + name; }
+function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+function renderSections(filter) {
+  const container = document.getElementById('sections');
+  container.innerHTML = '';
+  const q = (filter || '').toLowerCase().trim();
+  let totalVisible = 0;
+  const leafIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>`;
+  const chevronIcon = `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+  SECTIONS.forEach(sec => {
+    const prods = q ? sec.products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) : sec.products;
+    if (!prods.length) return;
+    totalVisible++;
+    const isOpen = !!q;
+    const block = document.createElement('div');
+    block.className = 'section-block';
+    block.innerHTML = `
+      <div class="section-header${isOpen?' open':''}" onclick="toggleSection(this)">
+        <h2>${leafIcon}${sec.title}</h2>
+        <div class="section-meta">
+          <span class="count">${prods.length} produit${prods.length>1?'s':''}</span>
+          ${chevronIcon}
+        </div>
+      </div>
+      <div class="product-list${isOpen?' open':''}">
+        ${prods.map(p => {
+          const key = uid(sec.id, p.code, p.name);
+          const qty = quantities[key] || 0;
+          return `<div class="product-row">
+            <div class="qty-control">
+              <button class="qty-btn" onclick="changeQty('${esc(key)}',-1)" aria-label="Diminuer">−</button>
+              <input class="qty-input${qty>0?' active':''}" type="number" min="0" value="${qty}" id="inp-${esc(key)}"
+                onchange="setQtyFromInput('${esc(key)}',this.value)" />
+              <button class="qty-btn" onclick="changeQty('${esc(key)}',1)" aria-label="Augmenter">+</button>
+            </div>
+            <span class="product-code">${p.code}</span>
+            <span class="product-name">${p.name}${p.bio ? ' <span class="bio-badge">BIO</span>' : ''}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    container.appendChild(block);
+  });
+  document.getElementById('no-results').style.display = totalVisible === 0 ? 'block' : 'none';
+}
+
+function toggleSection(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function changeQty(key, delta) {
+  quantities[key] = Math.max(0, (quantities[key] || 0) + delta);
+  const inp = document.getElementById('inp-' + key);
+  if (inp) { inp.value = quantities[key]; inp.className = 'qty-input' + (quantities[key]>0?' active':''); }
+  updateSummary();
+}
+
+function setQtyFromInput(key, val) {
+  quantities[key] = Math.max(0, parseInt(val) || 0);
+  const inp = document.getElementById('inp-' + key);
+  if (inp) { inp.value = quantities[key]; inp.className = 'qty-input' + (quantities[key]>0?' active':''); }
+  updateSummary();
+}
+
+function updateSummary() {
+  const items = [];
+  SECTIONS.forEach(sec => sec.products.forEach(p => {
+    const key = uid(sec.id, p.code, p.name);
+    const qty = quantities[key] || 0;
+    if (qty > 0) items.push({ code: p.code, name: p.name, qty });
+  }));
+
+  const clientName = (document.getElementById('client-name').value || '').trim();
+  document.getElementById('summary-stats').textContent = items.length + ' produit' + (items.length !== 1 ? 's' : '') + ' sélectionné' + (items.length !== 1 ? 's' : '');
+
+  const content = document.getElementById('summary-content');
+  const copyArea = document.getElementById('copy-area');
+
+  if (!items.length) {
+    content.innerHTML = '<p class="summary-empty">Aucun produit sélectionné pour l\'instant.</p>';
+    copyArea.style.display = 'none';
+    return;
+  }
+
+  content.innerHTML = items.map(item =>
+    `<div class="summary-item">
+      <span class="summary-qty">${item.qty} x</span>
+      <span class="summary-code">${item.code}</span>
+      <span class="summary-name">${item.name}</span>
+    </div>`
+  ).join('');
+
+  const today = new Date().toLocaleDateString('fr-CA');
+  const header = 'Commande pour : ' + clientName + ' — ' + today;
+  const lines = [header, ''];
+  items.forEach(item => lines.push(item.qty + ' x  ' + item.code + '  ' + item.name));
+  lines.push('');
+  lines.push(CONFIRMATION);
+
+  copyArea.style.display = 'block';
+  document.getElementById('email-text').value = lines.join('\n');
+  const btn = document.getElementById('btn-copy');
+  btn.className = 'btn-copy';
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier pour le courriel';
+}
+
+function copyEmail() {
+  const txt = document.getElementById('email-text');
+  txt.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('btn-copy');
+  btn.className = 'btn-copy copied';
+  btn.innerHTML = '✓ Copié !';
+  setTimeout(() => {
+    btn.className = 'btn-copy';
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier pour le courriel';
+  }, 2000);
+}
+
+function resetAll() {
+  Object.keys(quantities).forEach(k => delete quantities[k]);
+  document.getElementById('client-name').value = '';
+  renderSections(document.getElementById('search').value);
+  updateSummary();
+}
+
+function filterProducts(val) { renderSections(val); }
+
+renderSections('');
+</script>
+</body>
+</html>
